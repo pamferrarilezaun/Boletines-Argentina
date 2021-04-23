@@ -3,15 +3,31 @@ import json
 import requests
 from datetime import datetime
 from datetime import timedelta
+from os import path
 import time
 
-#Este script se ejecuta en cualquier carpeta y dentro de la misma se guardan todos los boletines correspondientes al rango de años
+#Este script se ejecuta en cualquier carpeta y dentro de la misma se guardan todos los boletines 
+# correspondientes al rango de años
 
-# fecha desde la cual existen boletines oficiales en Ciudad De Buenos Aires.
-date = datetime(2019,1,22)
+print("Extrayendo nuevos boletines")
+
+# fecha desde la cual existen boletines oficiales en Ciudad De Buenos Aires y fecha del dia.
+date = datetime(2021,3,22)
+today = datetime.now()
 
 # se scrapea todo hasta la fecha actual.
-while date < datetime(2021,4,2):
+while date < today:
+
+	#se obtiene la fecha de ese boletin para concatenar al nombre.
+	fecha = date.strftime("%d-%m-%Y")
+	#el nombre de salida del archivo esta conformado por boletinBuenosAires + la fecha de ese boletin
+	ARCHIVO_SALIDA_BOLETIN = f'boletinBuenosAires_{fecha}.pdf'
+
+	# Verifico si el boletin de la fecha ya fue extraido previamente
+	existe = path.exists(ARCHIVO_SALIDA_BOLETIN)
+	if existe:
+		date = date + timedelta(days=1)
+		continue
 
 	# A partir de esta fecha cambia la estructura de los links
 	fecha_modificacion = datetime(2017,8,17)
@@ -25,8 +41,6 @@ while date < datetime(2021,4,2):
 		fecha = date.strftime("%#d-%m-%Y")
 		#URL para la pagina principal
 		URL = 'https://api-restboletinoficial.buenosaires.gob.ar/obtenerBoletin/' + fecha + '/true'
-	
-	ic(URL)
 
 	# Apertura de sesion
 	s = requests.session()
@@ -43,8 +57,16 @@ while date < datetime(2021,4,2):
 	}
 
 	# solicitud get. Obtenemos el contenido de esa URL
-	r = s.get(URL,headers = headers)
-	ic(r)
+	contador = 0
+	while contador < 5:
+		try:
+			r = s.get(URL,headers = headers)
+			break
+		except:
+			contador += 1
+		if(contador == 5):
+			print("Problema de conexión. Intente mas tarde")
+			break
 
 	#convierte la respuesta en un json navegable.
 	data = json.loads(r.text)
@@ -54,12 +76,8 @@ while date < datetime(2021,4,2):
 		if(data['errores']): 
 			fecha = date.strftime("%d-%m-%Y")
 			URL = 'https://api-restboletinoficial.buenosaires.gob.ar/obtenerBoletin/' + fecha + '/true'
-			ic(URL)
 			r = s.get(URL,headers = headers)
-			ic(r)
 			data = json.loads(r.text)
-			ic(data['boletin']['fecha_publicacion'])
-			
 	except:
 		continue
 
@@ -74,14 +92,14 @@ while date < datetime(2021,4,2):
 			#URL para acceder al PDF correspondiente
 			fecha = date.strftime("%Y%m%d")
 			link_boletin_del_dia  = 'https://documentosboletinoficial.buenosaires.gob.ar/publico/' + fecha + '.pdf'
-			ic(link_boletin_del_dia)
+			# ic(link_boletin_del_dia)
 		else:
 			# se obtiene el numero para anexar al link que corresponde al PDF
 			numero = numero = data['boletin']['nombre']
 			numero = numero.split('.')[0]
 			#URL para acceder al PDF correspondiente
 			link_boletin_del_dia  = 'https://documentosboletinoficial.buenosaires.gob.ar/publico/' + numero + '.pdf'
-			ic(link_boletin_del_dia)
+			# ic(link_boletin_del_dia)
 
 		#headers del nuevo link. Estos tambien pueden variar, si falla el codigo comprobar si tienen los mismos headers.
 		headers_link = {
@@ -93,17 +111,15 @@ while date < datetime(2021,4,2):
 
 		#nueva solicitud get para extraer el PDF correspondiente al boletin de la fecha.
 		r_link = s.get(link_boletin_del_dia, headers = headers_link)
-		ic(r_link)
-
-		#se obtiene la fecha de ese boletin para concatenar al nombre.
-		fecha = data['boletin']['fecha_publicacion'].replace('/','-')
-		#el nombre de salida del archivo esta conformado por boletinBuenosAires + la fecha de ese boletin
-		nombre = f'boletinBuenosAires_{fecha}.pdf'
+		# ic(r_link)
 
 		#Se guarda la respuesta es un archivo PDF.
-		with open(nombre, 'wb') as f:
+		with open(ARCHIVO_SALIDA_BOLETIN, 'wb') as f:
 			f.write(r_link.content)
+			print("BOLETIN {} - GUARDADO".format(ARCHIVO_SALIDA_BOLETIN))
 
 	#se va al siguiente dia
 	date = date + timedelta(days=1)
+
+print("Fin de extraccion")
 

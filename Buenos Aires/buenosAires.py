@@ -4,20 +4,33 @@ import requests
 from datetime import datetime
 from datetime import timedelta
 import time
+from os import path
 from bs4 import BeautifulSoup
 
+print("Extrayendo nuevos boletines")
+
 # fecha desde la cual existen boletines oficiales en Ciudad De Buenos Aires.
-date = datetime(2010,7,2)
+date = datetime(2021,3,22)
+today = datetime.now()
 
-# se scrapea todo hasta la fecha puesta.
-while date < datetime(2021,4,6):
-	#fechas necesarias para la conformacion del link de la URL principal
-	fecha = date.strftime("%d/%m/%Y")
+# se scrapea todo hasta la fecha
+while date < today:
 
+	#se obtiene la fecha
+	fecha = date.strftime("%d-%m-%Y")
+	#el nombre de salida del archivo esta conformado por boletinProvBuenosAires + la fecha de ese boletin
+	ARCHIVO_SALIDA_BOLETIN = f'boletinProvBuenosAires_SeccionOficial_{fecha}.pdf'
+	# Verifico si el boletin de la fecha ya fue extraido previamente
+	existe = path.exists(ARCHIVO_SALIDA_BOLETIN)
+	if existe:
+		date = date + timedelta(days=1)
+		continue
+
+	fecha_actual = date.strftime("%d/%m/%Y")
 	# URL correspondiente a la seccion oficial
-	URL_oficial = 'https://www.boletinoficial.gba.gob.ar/buscar?search[date_gteq]=' + fecha + '&search[date_lteq]=' + fecha + '&search[section]=OFICIAL&search[words]=&search[sort]=by_match_desc&commit=Buscar'
+	URL_oficial = 'https://www.boletinoficial.gba.gob.ar/buscar?search[date_gteq]=' + fecha_actual + '&search[date_lteq]=' + fecha_actual + '&search[section]=OFICIAL&search[words]=&search[sort]=by_match_desc&commit=Buscar'
 	# URL correspondiente a la seccion suplemento
-	URL_suplemento = 'https://www.boletinoficial.gba.gob.ar/buscar?search[date_gteq]=' + fecha + '&search[date_lteq]=' + fecha + '&search[section]=SUPLEMENTO&search[words]=&search[sort]=by_match_desc&commit=Buscar'
+	URL_suplemento = 'https://www.boletinoficial.gba.gob.ar/buscar?search[date_gteq]=' + fecha_actual + '&search[date_lteq]=' + fecha_actual + '&search[section]=SUPLEMENTO&search[words]=&search[sort]=by_match_desc&commit=Buscar'
 	
 	# Apertura de sesion
 	s = requests.session()
@@ -29,9 +42,19 @@ while date < datetime(2021,4,6):
 		'Accept-Language': 'es-AR,es;q=0.8,en-US;q=0.5,en;q=0.3',
 		'Accept-Encoding': 'gzip, deflate, br'
 	}
+	
+	# solicitud get. Obtenemos el contenido de esa URL
+	contador = 0
+	while contador < 5:
+		try:
+			r_oficial = s.get(URL_oficial,headers = headers)
+			break
+		except:
+			contador += 1
+		if(contador == 5):
+			print("Problema de conexión. Intente mas tarde")
+			break
 
-	#solicitud get a la URL para seccion oficial
-	r_oficial = s.get(URL_oficial,headers = headers)
 	#la libreria BeautifulSoup transforma el HTML es una estructura navegable.
 	soup_oficial = BeautifulSoup(r_oficial.content, 'lxml')
 
@@ -60,6 +83,7 @@ while date < datetime(2021,4,6):
 		#Se guarda la respuesta en un archivo PDF.
 		with open(nombre_oficial, 'wb') as f:
 			f.write(oficial.content)
+			print("BOLETIN {} - GUARDADO".format(nombre_oficial))
 
 	#Seccion suplemento.
 	#considera en el if los casos que no hay boletin subido el dia de la fecha y en el else los casos en los que hay
@@ -84,6 +108,9 @@ while date < datetime(2021,4,6):
 		#Se guarda la respuesta es un archivo PDF.
 		with open(nombre_suplemento, 'wb') as f:
 			f.write(suplemento.content)
+			print("BOLETIN {} - GUARDADO".format(nombre_suplemento))
 
 	#se va al siguiente dia
 	date = date + timedelta(days=1)
+
+print("Fin de extraccion")

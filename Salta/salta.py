@@ -6,6 +6,9 @@ from datetime import timedelta
 import time
 from bs4 import BeautifulSoup
 import re
+from os import path
+
+print("Extrayendo nuevos boletines")
 
 #Este script se ejecuta en cualquier carpeta y dentro de la misma se guardan todos los boletines correspondientes al rango de años
 
@@ -31,14 +34,25 @@ def guardarBoletin(r, tipo_oficial, date):
 	#Se guarda la respuesta en un archivo PDF.
 	with open(nombre_oficial, 'wb') as f:
 		f.write(r.content)
+		print("BOLETIN {} - GUARDADO".format(nombre_oficial))
 
-	ic("Guardo boletin", nombre_oficial)
 
 # fecha desde la cual existen boletines oficiales en Ciudad De Buenos Aires.
-date = datetime(1973,7,1)
+date = datetime(2021,3,7)
+today = datetime.now()
 
 # se scrapea todo hasta la fecha actual.
-while date < datetime(2021,4,11):
+while date < today:
+
+	#se obtiene la fecha
+	fecha = date.strftime("%d-%m-%Y")
+	#el nombre de salida del archivo esta conformado por boletinProvBuenosAires + la fecha de ese boletin
+	ARCHIVO_SALIDA_BOLETIN = f'boletinEntreRios_{fecha}.pdf'
+	# Verifico si el boletin de la fecha ya fue extraido previamente
+	existe = path.exists(ARCHIVO_SALIDA_BOLETIN)
+	if existe:
+		date = date + timedelta(days=1)
+		continue
 
 	# Apertura de sesion
 	s = requests.session()
@@ -61,14 +75,24 @@ while date < datetime(2021,4,11):
 	anio = date.strftime("%Y") # se extrae el anio en el formato requerido
 	#se conforma el link para la solicitud en el formato requerido.
 	URL_valoresdinamicos = 'http://boletinoficialsalta.gob.ar/NewMostrarBusquedaBoletinesPDF.php?seguir=Continuar&elegido=F&nrobolet=&dd=' + dia + '&mm=' + mes + '&aaaa=' + anio + '&tipo=A'
-	ic(URL_valoresdinamicos)
-	# solicitud get. Obtenemos el contenido de la URL 
-	r_valoresdinamicos = s.get(URL_valoresdinamicos,headers = headers_link)
-	soup = BeautifulSoup(r_valoresdinamicos.content, 'lxml')
+	
 
+	# solicitud get. Obtenemos el contenido de la URL 
+	contador = 0
+	while contador < 5:
+		try:
+			r_valoresdinamicos = s.get(URL_valoresdinamicos,headers = headers_link)
+			break
+		except:
+			contador += 1
+			print("Problema de conexión")
+		if(contador == 5):
+			print("Problema de conexión. Intente mas tarde")
+			exit()
+
+	soup = BeautifulSoup(r_valoresdinamicos.content, 'lxml')
 	# Valida que el boletin se encuentre presente, si no continua con la ejecucion del codigo.
 	if soup.find(text=re.compile('Este Boletín Oficial no se encuentra')):
-		ic("No hay boletin")
 		date = date + timedelta(days=1)
 		continue
 
@@ -76,7 +100,6 @@ while date < datetime(2021,4,11):
 	regex = 'var pagina="(?P<valores_dinamicos>.*?)"'
 	match = re.search(regex, r_valoresdinamicos.text)
 	valores_dinamicos = match.group('valores_dinamicos')
-
 
 	# Tiene 3 tipos de estructura: se armo un codigo para una de las mismas. 
 
@@ -103,7 +126,6 @@ while date < datetime(2021,4,11):
 		valores_dinamicos = str(valores_dinamicos)
 
 		URL_principal = 'http://boletinoficialsalta.gob.ar/NewBoletinPDFAnteriores.php?' + valores_dinamicos
-		ic(URL_principal)
 		# solicitud get. Obtenemos el contenido de la URL principal
 		r = s.get(URL_principal,headers = headers_link)
 		#vuelve navegable la estructura
@@ -130,3 +152,5 @@ while date < datetime(2021,4,11):
 
 	#se va al siguiente dia
 	date = date + timedelta(days=1)
+
+print("Fin de extraccion")

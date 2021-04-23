@@ -6,17 +6,32 @@ from datetime import timedelta
 import time
 from bs4 import BeautifulSoup
 import locale
+from os import path
+
+print("Extrayendo nuevos boletines")
 
 # Idioma "es-ES" (código para el español de España)
 locale.setlocale(locale.LC_ALL, 'es-ES')
 
-#Este script se ejecuta en cualquier carpeta y dentro de la misma se guardan todos los boletines correspondientes al rango de años
+#Este script se ejecuta en cualquier carpeta y dentro de la misma se guardan todos los boletines correspondientes 
+# al rango de años
 
 # fecha desde la cual existen boletines oficiales en Ciudad De Buenos Aires.
-date = datetime(2005,1,3)
+date = datetime(2021,3,1)
+today = datetime.now()
 
 # se scrapea todo hasta la fecha actual.
-while date < datetime(2021,4,9):
+while date < today:
+
+	#se obtiene la fecha
+	fecha = date.strftime("%d-%m-%Y")
+	#el nombre de salida del archivo esta conformado por boletinProvBuenosAires + la fecha de ese boletin
+	ARCHIVO_SALIDA_BOLETIN = f'boletinEntreRios_{fecha}.pdf'
+	# Verifico si el boletin de la fecha ya fue extraido previamente
+	existe = path.exists(ARCHIVO_SALIDA_BOLETIN)
+	if existe:
+		date = date + timedelta(days=1)
+		continue
 
 	# Apertura de sesion
 	s = requests.session()
@@ -37,11 +52,18 @@ while date < datetime(2021,4,9):
 	fecha = date.strftime("%d-%m") #se extrae la fecha en el formato dia-mes-anio
 	fecha_anio = date.strftime("%Y")[-2:]#el anio requiere solo dos digitos
 	URL = URL + anio + '/' + mes + '/' + fecha + '-' + fecha_anio + '.pdf'
-	ic(URL)
 
 	# solicitud get. Obtenemos el contenido de esa URL
-	r = s.get(URL,headers = headers)
-	ic(r)
+	contador = 0
+	while contador < 5:
+		try:
+			r = s.get(URL,headers = headers)
+			break
+		except:
+			contador += 1
+		if(contador == 5):
+			print("Problema de conexión. Intente mas tarde")
+			break
 
 	#se comprueba si hay boletin oficial ese dia. En caso de que no haya continua, si no, se guarda el boletin.
 	soup = BeautifulSoup(r.content, 'lxml') # se tranforma en una estrucutra navegable para poder acceder al contenido
@@ -57,6 +79,9 @@ while date < datetime(2021,4,9):
 		#Se guarda la respuesta en un archivo PDF.
 		with open(nombre_oficial, 'wb') as f:
 			f.write(r.content)
+			print("BOLETIN {} - GUARDADO".format(nombre_oficial))
 
 	#se va al siguiente dia
 	date = date + timedelta(days=1)
+
+print("Fin de extraccion")
