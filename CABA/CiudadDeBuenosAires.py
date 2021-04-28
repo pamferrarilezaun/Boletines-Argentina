@@ -85,7 +85,7 @@ while date <= today:
 			r = s.get(URL,headers = headers)
 			data = json.loads(r.text)
 	except:
-		continue
+		pass
 
 	#se debe comparar la fecha de la respuesta con la fecha que esta corriendo el algoritmo. La web si no tiene cargado boletin
 	# en un determinado dia, por defecto te trae el ultimo boletin oficial, entonces la fecha se setea en la del ultimo boletin.
@@ -98,14 +98,14 @@ while date <= today:
 			#URL para acceder al PDF correspondiente
 			fecha = date.strftime("%Y%m%d")
 			link_boletin_del_dia  = 'https://documentosboletinoficial.buenosaires.gob.ar/publico/' + fecha + '.pdf'
-			# ic(link_boletin_del_dia)
+			
 		else:
 			# se obtiene el numero para anexar al link que corresponde al PDF
 			numero = numero = data['boletin']['nombre']
 			numero = numero.split('.')[0]
 			#URL para acceder al PDF correspondiente
 			link_boletin_del_dia  = 'https://documentosboletinoficial.buenosaires.gob.ar/publico/' + numero + '.pdf'
-			# ic(link_boletin_del_dia)
+			
 
 		#headers del nuevo link. Estos tambien pueden variar, si falla el codigo comprobar si tienen los mismos headers.
 		headers_link = {
@@ -117,7 +117,6 @@ while date <= today:
 
 		#nueva solicitud get para extraer el PDF correspondiente al boletin de la fecha.
 		r_link = s.get(link_boletin_del_dia, headers = headers_link)
-		# ic(r_link)
 
 		#Se guarda la respuesta es un archivo PDF.
 		with open(ARCHIVO_SALIDA_BOLETIN, 'wb') as f:
