@@ -1,4 +1,3 @@
-from icecream import ic
 import json
 import requests
 from datetime import datetime
@@ -7,26 +6,43 @@ import time
 from bs4 import BeautifulSoup
 import locale
 from os import path
+import os
+from glob import glob
 
 print("Extrayendo nuevos boletines")
+
+CARPETA_SALIDA = 'dataset/'
+# Verifico que la carpeta de salida exista
+if not os.path.exists(CARPETA_SALIDA):
+    os.mkdir('dataset')
+
+# fecha desde la cual existen boletines oficiales en Ciudad De Buenos Aires.
+date = datetime(2005,1,3)
+
+# Obtengo la fecha del ultimo boletin obtenido
+for boletin in glob(CARPETA_SALIDA+'*.pdf'):
+	try:
+		date_candidata = datetime.strptime(boletin, 'dataset\\boletinEntreRios_%d-%m-%Y.pdf')
+	except:
+		continue
+	if date_candidata > date:
+		date = date_candidata
 
 # Idioma "es-ES" (código para el español de España)
 locale.setlocale(locale.LC_ALL, 'es-ES')
 
-#Este script se ejecuta en cualquier carpeta y dentro de la misma se guardan todos los boletines correspondientes 
-# al rango de años
-
-# fecha desde la cual existen boletines oficiales en Ciudad De Buenos Aires.
-date = datetime(2021,3,1)
+# print(date)
+# Fecha del dia
 today = datetime.now()
 
 # se scrapea todo hasta la fecha actual.
-while date < today:
+while date <= today:
 
 	#se obtiene la fecha
 	fecha = date.strftime("%d-%m-%Y")
 	#el nombre de salida del archivo esta conformado por boletinProvBuenosAires + la fecha de ese boletin
-	ARCHIVO_SALIDA_BOLETIN = f'boletinEntreRios_{fecha}.pdf'
+	ARCHIVO_SALIDA_BOLETIN = CARPETA_SALIDA + f'boletinEntreRios_{fecha}.pdf'
+	
 	# Verifico si el boletin de la fecha ya fue extraido previamente
 	existe = path.exists(ARCHIVO_SALIDA_BOLETIN)
 	if existe:
@@ -54,16 +70,7 @@ while date < today:
 	URL = URL + anio + '/' + mes + '/' + fecha + '-' + fecha_anio + '.pdf'
 
 	# solicitud get. Obtenemos el contenido de esa URL
-	contador = 0
-	while contador < 5:
-		try:
-			r = s.get(URL,headers = headers)
-			break
-		except:
-			contador += 1
-		if(contador == 5):
-			print("Problema de conexión. Intente mas tarde")
-			break
+	r = s.get(URL,headers = headers)
 
 	#se comprueba si hay boletin oficial ese dia. En caso de que no haya continua, si no, se guarda el boletin.
 	soup = BeautifulSoup(r.content, 'lxml') # se tranforma en una estrucutra navegable para poder acceder al contenido
@@ -75,6 +82,7 @@ while date < today:
 		fecha_salida = date.strftime("%d-%m-%Y")
 		#el nombre de salida del archivo esta conformado por boletinEntreRios + la fecha de ese boletin
 		nombre_oficial = f'boletinEntreRios_{fecha_salida}.pdf'
+		nombre_oficial = CARPETA_SALIDA + nombre_oficial
 
 		#Se guarda la respuesta en un archivo PDF.
 		with open(nombre_oficial, 'wb') as f:
@@ -85,3 +93,4 @@ while date < today:
 	date = date + timedelta(days=1)
 
 print("Fin de extraccion")
+os.system("pause")

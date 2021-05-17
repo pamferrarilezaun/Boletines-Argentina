@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import re
 import os
 from glob import glob
+import os
 
 CARPETA_SALIDA = 'dataset/'
 # Verifico que la carpeta de salida exista
