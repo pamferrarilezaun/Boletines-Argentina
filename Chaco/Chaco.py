@@ -12,7 +12,7 @@ if not os.path.exists(CARPETA_SALIDA):
     os.mkdir('dataset')
 
 ARCHIVO_SALIDA_BOLETIN = "dataset/boletinChaco_{dia}-{mes}-{anio}.pdf"
-ARCHIVO_SALIDA_BOLETIN_EXTRA = "dataset/boletinChaco_{dia}-{mes}-{anio}-{desc}.pdf"
+ARCHIVO_SALIDA_BOLETIN_EXTRA = "dataset/boletinChaco_{dia}-{mes}-{anio}-extra.pdf"
 
 # Objeto de nueva sesion del cliente http
 s = requests.session()
@@ -75,7 +75,10 @@ while (i<=cantidad_paginas):
 
             descripcion = tds[2].text.strip().replace('/','-')
             if descripcion != '':
-                with open(ARCHIVO_SALIDA_BOLETIN_EXTRA.format(anio=date.year,mes=mes,dia=dia, desc = descripcion), 'wb') as f:
+                existe_extra = os.path.exists(ARCHIVO_SALIDA_BOLETIN_EXTRA.format(anio=date.year,mes=mes,dia=dia))
+                if existe_extra:
+                    continue
+                with open(ARCHIVO_SALIDA_BOLETIN_EXTRA.format(anio=date.year,mes=mes,dia=dia), 'wb') as f:
                     f.write(r.content)
             else:
                 with open(ARCHIVO_SALIDA_BOLETIN.format(anio=date.year,mes=mes,dia=dia), 'wb') as f:

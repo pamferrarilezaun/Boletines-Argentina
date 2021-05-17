@@ -10,6 +10,7 @@ import os
 import locale
 import dateparser
 from dateutil.relativedelta import relativedelta
+import calendar
 
 CARPETA_SALIDA = 'dataset/'
 
@@ -47,6 +48,8 @@ locale.setlocale(locale.LC_ALL, 'es-ES')
 
 # Fecha actual
 today = datetime.now()
+ultimo_dia_mes_actual = calendar.monthrange(today.year, today.month)[1]
+today = datetime(today.year, today.month, ultimo_dia_mes_actual)
 
 print("EXTRAYENDO NUEVOS BOLETINES")
 print("Fecha comienzo: {}".format(date.strftime('%d-%m-%Y')))
@@ -66,16 +69,21 @@ while date <= today:
     url_boletines = ['https://boficial.neuquen.gov.ar'+div.find('a')['href'] for div in soup.find_all('div', attrs={'class':'cc-text'})]
 
     for fecha_boletin, url_boletin in zip(fechas_boletines, url_boletines):
-        print(url_boletin)
-        # Se realiza la solicitud para obtener el boletin
-        r = s.get(url_boletin, headers = headers)
-
         date_boletin = dateparser.parse(fecha_boletin)
 
         # Se da formato a dia y mes, completando con un cero delante en caso de contener un solo digito
         # Ejemplo: 3 -> 03
         dia = str(date_boletin.day).zfill(2)
         mes = str(date_boletin.month).zfill(2)
+
+        existe = os.path.exists(ARCHIVO_SALIDA_BOLETIN.format(anio=date_boletin.year,mes=mes,dia=dia))
+        if existe:
+            continue
+
+        # Se realiza la solicitud para obtener el boletin
+        r = s.get(url_boletin, headers = headers)
+
+
 
         # Si tuvimos exito, obtuvimos el boletin y se procede a guardarlo en la ruta de salida
         with open(ARCHIVO_SALIDA_BOLETIN.format(anio=date_boletin.year,mes=mes,dia=dia), 'wb') as f:
@@ -85,6 +93,7 @@ while date <= today:
 
     # Se continua con la siguiente iteracion.
     date = date + relativedelta(months=1)
+    print(date)
 
 print("FIN DE EXTRACCION")
 os.system("pause")

@@ -40,9 +40,13 @@ today = datetime.now()
 # Fecha de inicio del año en curso
 date = datetime(today.year,1,1)
 
+
 # Obtengo la fecha del ultimo boletin obtenido
 for boletin in glob(CARPETA_SALIDA+'*.pdf'):
-    date_candidata = datetime.strptime(boletin, 'dataset\\boletinJujuy_%d-%m-%Y.pdf')
+    try:    
+        date_candidata = datetime.strptime(boletin, 'dataset\\boletinJujuy_%d-%m-%Y.pdf')
+    except:
+        continue
     if date_candidata > date:
         date = date_candidata
 
@@ -50,12 +54,10 @@ print("EXTRAYENDO NUEVOS BOLETINES")
 print("Fecha comienzo: {}".format(date.strftime('%d-%m-%Y')))
 
 # Se itera a traves de todas las fechas, desde la fecha origen a la fecha actual
-while date.month <= today.month:
+while date.month < today.month:
 
     # Se procede a la extraccion del boletin
     mes = date.strftime('%b').lower()
-
-    print(url.format(mes, date.year))
 
     # Primer paso: solicitud para obtener boletines del mes
     r  = s.get(url.format(mes, date.year), headers = headers)
