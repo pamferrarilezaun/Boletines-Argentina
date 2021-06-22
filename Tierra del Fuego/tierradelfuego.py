@@ -50,12 +50,12 @@ url = 'http://recursosweb.tierradelfuego.gov.ar/webapps/decoley/resultados.php'
 
 # Fecha base a partir de la cual existen publicaciones
 date = datetime(2001,5,21)
-date = datetime(2001,10,1)
+# date = datetime(2001,10,1)
 
 # Obtengo la fecha del ultimo boletin obtenido
-for boletin in glob(CARPETA_SALIDA+'*.pdf'):
+for boletin in glob(CARPETA_SALIDA+'*.zip'):
     try:
-        date_candidata = datetime.strptime(boletin, 'dataset\\boletinTierraDelFuego_%d-%m-%Y.pdf')
+        date_candidata = datetime.strptime(boletin, 'dataset\\boletinTierraDelFuego_%d-%m-%Y.zip')
     except:
         continue
     if date_candidata > date:
