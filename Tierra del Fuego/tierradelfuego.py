@@ -65,11 +65,11 @@ for boletin in glob(CARPETA_SALIDA+'*.zip'):
 today = datetime.now()
 
 print("EXTRAYENDO NUEVOS BOLETINES")
-print("Fecha comienzo: {}".format(date.strftime('%d-%m-%Y')))
+# print("Fecha comienzo: {}".format(date.strftime('%d-%m-%Y')))
 
 # Se itera a traves de todas las fechas, desde la fecha origen a la fecha actual
 while date <= today:
-    print(date)
+
     # Se da formato a dia y mes, completando con un cero delante en caso de contener un solo digito
     # Ejemplo: 3 -> 03
     dia = str(date.day).zfill(2)
