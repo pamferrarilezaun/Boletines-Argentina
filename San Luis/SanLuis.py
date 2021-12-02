@@ -18,7 +18,7 @@ CARPETA_SALIDA = 'dataset/'
 if not os.path.exists(CARPETA_SALIDA):
     os.mkdir('dataset')
 
-ARCHIVO_SALIDA_BOLETIN = CARPETA_SALIDA+"boletinSanLuis_{nombre}_{dia}-{mes}-{anio}.doc"
+ARCHIVO_SALIDA_BOLETIN = CARPETA_SALIDA+"boletinSanLuis_{nombre}_{dia}-{mes}-{anio}_{numero}.doc"
 
 # Objeto de nueva sesion del cliente http
 s = requests.session()
@@ -66,10 +66,13 @@ ultimo_dia_mes_actual = calendar.monthrange(today.year, today.month)[1]
 today = datetime(today.year, today.month, ultimo_dia_mes_actual)
 
 print("EXTRAYENDO NUEVOS BOLETINES")
-print("Fecha comienzo: {}".format(date.strftime('%d-%m-%Y')))
+# print("Fecha comienzo: {}".format(date.strftime('%d-%m-%Y')))
+
+# Se utiliza para cortar la ejecucion del while en caso de que los archivos existan.
+bandera = True
 
 # Se itera a traves de todas las fechas, desde la fecha origen a la fecha actual
-while date <= today:
+while date <= today and bandera:
 
     # Se procede a la extraccion del boletin
 
@@ -83,6 +86,9 @@ while date <= today:
     soup = BeautifulSoup(r.content, 'lxml')
 
     boletines = soup.find('div', attrs={'class':'row boletin-list'}).find_all('tr')
+
+    # Se agrega un numero secuencial en el nombre del archivo.
+    numero = 0
 
     # Se itera sobre el listado de boletines del mes
     for boletin in boletines:
@@ -128,6 +134,7 @@ while date <= today:
 
         # Se iteran los archivos de la seccion legislativa
         for tr in trs:
+
             # Se obtienen parametros de solicitud de archivo
             payload_archivo = {
                 "form": "form"
@@ -140,19 +147,24 @@ while date <= today:
 
             
             # Verifico la existencia
-            nombre_archivo = ARCHIVO_SALIDA_BOLETIN.format(nombre=nombre, dia=dia,mes=mes, anio=anio)
-
+            nombre_archivo = ARCHIVO_SALIDA_BOLETIN.format(nombre=nombre, dia=dia,mes=mes, anio=anio, numero = numero)
+            
             existe = os.path.exists(nombre_archivo)
 
             if existe:
-                continue
-            
+                bandera = False
+                break
+
             # Se realiza la solicitud del archivo
             r = s.post(url_archivo, data = payload_archivo)
 
             # Se guarda el archivo final
             with open(nombre_archivo, 'wb') as f:
                 f.write(r.content)
+                print("BOLETIN {} - GUARDADO".format(nombre_archivo))
+                numero = numero + 1
+        if not bandera:
+            break
     # Se continua con la siguiente iteracion.
     date = date + relativedelta(months=1)
 
