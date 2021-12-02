@@ -28,25 +28,8 @@ headers = {
     'Referer': 'https://boletinoficial.mendoza.gov.ar/'
 }
 
-# Estructura base de los datos a enviar en las solicitudes HTTP
-payload_norma = {
-	"numero": "",
-	"tipo_busqueda": "NORMA",
-	"tipo_boletin": "2",
-	"edicto_id": "",
-	"norma_edicto_id": "111",
-	"fecha_desde": "2017-01-20",
-	"fecha_hasta": "2017-01-20"
-}
-
-# Expresion regular para obtencion de datos relevantes sobre tipo de boletin y id de norma
-REGEX_NORMA = "getBoletinDetalleNorma\('\d+-\d+-\d+','(?P<tipo_boletin>\d+)','(?P<norma_edicto_id>\d+)'\);"
-
-# URLs para las futuras consultas HTTP
-url_nro_boletin = 'https://apicake.mendoza.gov.ar/APIcake/Servicios/getBoletinAnterior'
-url_indice_boletin = 'https://apicake.mendoza.gov.ar/APIcake/Servicios/getBoletinIndice'
-url_detalle_boletin = 'https://apicake.mendoza.gov.ar/APIcake/Servicios/getBoletinDetalle'
-
+# URs para consultas HTTP
+url_servicio = 'https://apicake.mendoza.gov.ar/APIcake/Servicios/getServicio/'
 
 # Fecha base a partir de la cual existen publicaciones
 date = datetime(2017,1,20)
@@ -86,7 +69,7 @@ while date <= today:
     #print("Boletin del dia: {}/{}/{}".format(dia, mes, date.year))
 
     # Solicitud para obtener nro de Boletin
-    r = s.post(url_nro_boletin, headers = headers, data = {'fecha':fecha})
+    r = s.post(url_servicio, headers = headers, data = {'fecha':fecha, 'tipo_busqueda':'boletin', 'numero':''})
 
     # Si el servidor arroja una respuesta no exitosa, avanzamos al dia siguiente
     # Respuestas no exitosas indican, en general, la no existencia del boletin en el dia requerido
@@ -97,17 +80,14 @@ while date <= today:
     # Se parsea la respuesta HTML obtenida de la consula al servidor
     soup = BeautifulSoup(r.content, 'lxml')
 
-    # Intentamos obtener el numero de boletin
+    # Intentamos obtener el link del pdf
     # En caso de haber un problema, procedemos al siguiente dia.
     # Nuevamente, los problemas en este punto indican en general la no existencia del boletin.
     try:
-        nro_boletin = soup.find(text = re.compile('Boletín N°')).split('N°')[1].strip()
+        link_pdf = soup.find('i', attrs={'class':'fa fa-file-pdf-o'}).parent['href']
     except:
         date = date + timedelta(days=1)
         continue        
-    
-    # Si tuvimos exito, obtenemos el link del pdf
-    link_pdf = soup.find(text = re.compile('Edición Impresa')).parent['href']
 
     # Solicitud para obtener indice de lo publicado
     r = s.get(link_pdf, headers = headers)
