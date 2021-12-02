@@ -79,7 +79,6 @@ while date <= today:
     
     # Se parsea la respuesta HTML obtenida de la consula al servidor
     soup = BeautifulSoup(r.content, 'lxml')
-    print(soup)
 
     # Intentamos obtener el link del pdf
     # En caso de haber un problema, procedemos al siguiente dia.
