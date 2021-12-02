@@ -96,15 +96,17 @@ while date <= today:
     
     # Se parsea la respuesta HTML obtenida de la consula al servidor
     soup = BeautifulSoup(r.content, 'lxml')
+    print(soup)
 
     # Intentamos obtener el numero de boletin
     # En caso de haber un problema, procedemos al siguiente dia.
     # Nuevamente, los problemas en este punto indican en general la no existencia del boletin.
     try:
         nro_boletin = soup.find(text = re.compile('Boletín N°')).split('N°')[1].strip()
+        print("EL NUMERO DE BOLETIN:", nro_boletin)
     except:
         date = date + timedelta(days=1)
-        continue        
+        continue
     
     # Si tuvimos exito, obtenemos el link del pdf
     link_pdf = soup.find(text = re.compile('Edición Impresa')).parent['href']
